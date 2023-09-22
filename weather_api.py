@@ -3,7 +3,6 @@ import json
 from flask import Flask, request, jsonify
 import requests
 import redis
-from datetime import datetime, timedelta
 import re
 
 app = Flask(__name__)
@@ -11,9 +10,6 @@ redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 # Define the base URL for METAR data retrieval
 METAR_BASE_URL = "http://tgftp.nws.noaa.gov/data/observations/metar/stations/"
-
-# Regular expression pattern to parse METAR data
-metar_pattern = r"(\d{4}/\d{2}/\d{2} \d{2}:\d{2}) (\w{4}) (\d{6}Z) (\d{5}KT) (\d{4}) ([A-Z]+)(\d{3}) ([A-Z]+)(\d{3}) (\d{2})/(\d{2}) Q(\d{4}) ([A-Z]+)"
 
 # Function to fetch METAR data for a station code
 def fetch_metar_data(station_code):
@@ -25,21 +21,28 @@ def fetch_metar_data(station_code):
 
 # Function to parse METAR data and extract required information
 def parse_metar_data(metar_text):
-    match = re.match(metar_pattern, metar_text)
-    if match:
-        timestamp = match.group(1)
-        station = match.group(2)
-        wind_direction = match.group(3)
-        wind_speed = match.group(4)
-        visibility = match.group(5)
-        cloud1_type = match.group(6)
-        cloud1_altitude = match.group(7)
-        cloud2_type = match.group(8)
-        cloud2_altitude = match.group(9)
-        temperature = match.group(10)
-        dewpoint = match.group(11)
-        pressure = match.group(12)
-        remarks = match.group(13)
+    # Split the METAR data by spaces
+    metar_parts = metar_text.split()
+
+    if len(metar_parts) >= 12:
+        timestamp = metar_parts[0] + " " + metar_parts[1]
+        station = metar_parts[2]
+        wind_direction = metar_parts[3]
+        wind_speed = metar_parts[4]
+        visibility = metar_parts[5]
+        cloud1_type = metar_parts[6]
+        cloud1_altitude = metar_parts[7]
+        cloud2_type = metar_parts[8]
+        cloud2_altitude = metar_parts[9]
+        temperature = metar_parts[10]
+        dewpoint = metar_parts[11]
+
+        # Extract pressure and remarks if available
+        pressure = ""
+        remarks = ""
+        if len(metar_parts) > 12:
+            pressure = metar_parts[12]
+            remarks = " ".join(metar_parts[13:])
 
         # Create a JSON object
         metar_json = {
